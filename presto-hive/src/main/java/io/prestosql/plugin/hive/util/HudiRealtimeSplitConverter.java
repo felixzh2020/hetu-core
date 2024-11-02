@@ -15,6 +15,8 @@ package io.prestosql.plugin.hive.util;
 
 import com.google.common.collect.ImmutableMap;
 import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hudi.common.model.HoodieLogFile;
+import org.apache.hudi.common.util.Option;
 import org.apache.hudi.hadoop.realtime.HoodieRealtimeFileSplit;
 
 import java.io.IOException;
@@ -22,6 +24,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.requireNonNull;
 
@@ -36,6 +39,7 @@ public class HudiRealtimeSplitConverter
     private static final String HUDI_DELTA_FILEPATHS_KEY = "hudi_delta_filepaths";
     private static final String HUDI_BASEPATH_KEY = "hudi_basepath";
     private static final String HUDI_MAX_COMMIT_TIME_KEY = "hudi_max_commit_time";
+    private static final String HUDI_BELONGS_TO_INCRENTAL_QUERY = "hudi_belongs_to_incremental_query";
 
     @Override
     public Optional<Map<String, String>> extractCustomSplitInfo(FileSplit split)
@@ -47,6 +51,7 @@ public class HudiRealtimeSplitConverter
                     .put(HUDI_DELTA_FILEPATHS_KEY, String.join(",", hudiSplit.getDeltaLogPaths()))
                     .put(HUDI_BASEPATH_KEY, hudiSplit.getBasePath())
                     .put(HUDI_MAX_COMMIT_TIME_KEY, hudiSplit.getMaxCommitTime())
+                    .put(HUDI_BELONGS_TO_INCRENTAL_QUERY, String.valueOf(hudiSplit.getBelongsToIncrementalQuery()))
                     .build();
             return Optional.of(customSplitInfo);
         }
@@ -63,8 +68,10 @@ public class HudiRealtimeSplitConverter
             return Optional.of(new HoodieRealtimeFileSplit(
                     split,
                     requireNonNull(customSplitInfo.get(HUDI_BASEPATH_KEY), "HUDI_BASEPATH_KEY is missing"),
-                    deltaLogPaths,
-                    requireNonNull(customSplitInfo.get(HUDI_MAX_COMMIT_TIME_KEY), "HUDI_MAX_COMMIT_TIME_KEY is missing")));
+                    deltaLogPaths.stream().filter(e -> (e != null && e.trim().length() > 0)).map(entry -> new HoodieLogFile(entry)).collect(Collectors.toList()),
+                    requireNonNull(customSplitInfo.get(HUDI_MAX_COMMIT_TIME_KEY), "HUDI_MAX_COMMIT_TIME_KEY is missing"),
+                    Boolean.parseBoolean(customSplitInfo.get(HUDI_BELONGS_TO_INCRENTAL_QUERY)),
+                    Option.empty()));
         }
         return Optional.empty();
     }

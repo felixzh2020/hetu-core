@@ -61,7 +61,7 @@
         <dep.hetu.version>${project.version}</dep.hetu.version>
         <dep.jetty.version>9.4.51.v20230217</dep.jetty.version>
         <dep.bcprov.version>1.66</dep.bcprov.version>
-        <dep.hudi.version>0.7.0</dep.hudi.version>
+        <dep.hudi.version>0.14.1</dep.hudi.version>
         <dep.kryo.version>5.0.3</dep.kryo.version>
         <!--
           America/Bahia_Banderas has:

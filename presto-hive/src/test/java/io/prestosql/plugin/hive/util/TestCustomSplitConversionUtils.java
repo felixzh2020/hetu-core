@@ -15,6 +15,8 @@ package io.prestosql.plugin.hive.util;
 
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileSplit;
+import org.apache.hudi.common.model.HoodieLogFile;
+import org.apache.hudi.common.util.Option;
 import org.apache.hudi.hadoop.realtime.HoodieRealtimeFileSplit;
 import org.testng.annotations.Test;
 
@@ -22,6 +24,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.testng.Assert.assertEquals;
 
@@ -37,9 +40,12 @@ public class TestCustomSplitConversionUtils
         String expectedBasepath = "basepath";
         List<String> expectedDeltaLogPaths = Arrays.asList("test1", "test2", "test3");
         String expectedMaxCommitTime = "max_commit_time";
+        boolean expectedBelongsToIncrementalQuery = false;
 
         FileSplit baseSplit = new FileSplit(expectedPath, expectedStart, expectedLength, expectedLocations);
-        FileSplit hudiSplit = new HoodieRealtimeFileSplit(baseSplit, expectedBasepath, expectedDeltaLogPaths, expectedMaxCommitTime);
+        FileSplit hudiSplit = new HoodieRealtimeFileSplit(baseSplit, expectedBasepath, expectedDeltaLogPaths.stream().
+                map(entry -> new HoodieLogFile(entry)).collect(Collectors.toList()), expectedMaxCommitTime,
+                expectedBelongsToIncrementalQuery, Option.empty());
 
         // Test conversion of HudiSplit -> customSplitInfo
         Map<String, String> customSplitInfo = CustomSplitConversionUtils.extractCustomSplitInfo(hudiSplit);
@@ -53,6 +59,7 @@ public class TestCustomSplitConversionUtils
         assertEquals(recreatedSplit.getLocations(), expectedLocations);
         assertEquals(((HoodieRealtimeFileSplit) recreatedSplit).getBasePath(), expectedBasepath);
         assertEquals(((HoodieRealtimeFileSplit) recreatedSplit).getDeltaLogPaths(), expectedDeltaLogPaths);
+        assertEquals(((HoodieRealtimeFileSplit) recreatedSplit).getBelongsToIncrementalQuery(), expectedBelongsToIncrementalQuery);
         assertEquals(((HoodieRealtimeFileSplit) recreatedSplit).getMaxCommitTime(), expectedMaxCommitTime);
     }
 }
